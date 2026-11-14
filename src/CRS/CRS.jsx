@@ -10,6 +10,8 @@ import { createCrsSchema, yupFormResolver } from './validationSchema'
 import CustomModal from '../components/CustomModal'
 
 const EMPTY_LOCALES = {}
+const MAX_COUNTRIES = 5
+const HOLD_RESIDENCE_COUNTRY_FIELD = 'highRiskCountryDetails.holdResidenceInOtherJurisdictionCountry'
 
 const initialCountryResidence = {
     countryOfTaxResidenceCode: '',
@@ -77,6 +79,8 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
     const countries = countriesData
 
     const [openAddCountryModal, setOpenAddCountryModal] = useState(false);
+    const [pendingCountryCode, setPendingCountryCode] = useState(null)
+    const [showMaxCountriesMessage, setShowMaxCountriesMessage] = useState(false)
 
     const countryOfTaxResidence = useWatch({ control, name: 'countryOfTaxResidence' }) || []
     const taxResidenceCodeKey = countryOfTaxResidence
@@ -95,15 +99,50 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
             field.obtainResidenceRightsUnderCitizenshipByInvestmentScheme === true
     )
 
-    const appendCountryToTaxResidence = useCallback((countryCode) => {
+    const appendCountryToTaxResidence = useCallback((countryCode, sourceFieldName) => {
         if (!countryCode || taxResidenceCodes.includes(countryCode)) return
 
+        if (fields.length >= MAX_COUNTRIES) {
+            setShowMaxCountriesMessage(true)
+            if (sourceFieldName) setValue(sourceFieldName, null)
+            return
+        }
+
         append(createCountryResidence(countryCode))
-    }, [append, taxResidenceCodes])
+    }, [append, fields.length, setValue, taxResidenceCodes])
+
+    const requestCountryAddition = useCallback((countryCode) => {
+        if (!countryCode || taxResidenceCodes.includes(countryCode)) return
+
+        setPendingCountryCode(countryCode)
+        setOpenAddCountryModal(true)
+    }, [taxResidenceCodes])
+
+    const clearPendingCountry = useCallback(() => {
+        setValue(HOLD_RESIDENCE_COUNTRY_FIELD, null)
+        setPendingCountryCode(null)
+        setOpenAddCountryModal(false)
+    }, [setValue])
+
+    const addPendingCountry = useCallback(() => {
+        if (!pendingCountryCode) {
+            setOpenAddCountryModal(false)
+            return
+        }
+
+        appendCountryToTaxResidence(pendingCountryCode, HOLD_RESIDENCE_COUNTRY_FIELD)
+        setPendingCountryCode(null)
+        setOpenAddCountryModal(false)
+    }, [appendCountryToTaxResidence, pendingCountryCode])
 
     const appendEmptyCountry = useCallback(() => {
+        if (fields.length >= MAX_COUNTRIES) {
+            setShowMaxCountriesMessage(true)
+            return
+        }
+
         append(createCountryResidence())
-    }, [append])
+    }, [append, fields.length])
 
     const onSubmit = () => {
         console.log("submitting.....")
@@ -151,7 +190,7 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
                     </TransitionGroup>
                 </div>
 
-                {fields?.length < 5 && (
+                {fields?.length < MAX_COUNTRIES && (
                     <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
                         <Button variant='contained' type="button" onClick={appendEmptyCountry}>Add Country</Button>
                     </div>
@@ -170,6 +209,7 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
                         taxResidenceCodes={taxResidenceCodes}
                         showOtherJurisdictionQuestion={highRiskCountryCount < 2}
                         onCountryAdded={appendCountryToTaxResidence}
+                        onCountrySelected={requestCountryAddition}
                     />
                 </Collapse>
 
@@ -187,9 +227,11 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
                     borderTop: '1px solid #eee',
                 }}
             >
-                <div style={{ color: 'red', background: '#FF7F7F', borderRadius: '8px', padding: '12px', marginBottom: '24px' }}>
-                    Only five countries can be added as Country(ies) of Tax Residence
-                </div>
+                {showMaxCountriesMessage && (
+                    <div style={{ color: 'red', background: '#FF7F7F', borderRadius: '8px', padding: '12px', marginBottom: '24px' }}>
+                        Only five countries can be added as Country(ies) of Tax Residence
+                    </div>
+                )}
                 <Button
                     variant="contained"
                     type="submit"
@@ -202,10 +244,12 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
 
             <CustomModal
                 open={openAddCountryModal}
-                onClose={() => setOpenAddCountryModal(prev => !prev)}
-                content={`Do you want to add x Country as Country of Tax Residence ?`}
-                cancelButtonText={"Cancel"}
-                actionButtonText={"Add"}
+                onClose={clearPendingCountry}
+                content={`Do you want to add ${countries.find((country) => country.value === pendingCountryCode)?.name || pendingCountryCode || 'this'} Country as Country of Tax Residence ?`}
+                cancelButtonText="No"
+                actionButtonText="Yes"
+                onCancelClick={clearPendingCountry}
+                onActionClick={addPendingCountry}
             />
         </div>
     )

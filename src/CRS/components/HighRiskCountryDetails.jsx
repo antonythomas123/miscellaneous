@@ -5,7 +5,7 @@ import { ControlledSelect } from '../../components/CustomSelect'
 import { Collapse } from '@mui/material'
 import reasonableExplanations from '../../data/reasonableExplanations.json'
 
-const HighRiskCountryDetails = ({ control, detailsErrors = {}, countries, taxResidenceCodes, showOtherJurisdictionQuestion, onCountryAdded }) => {
+const HighRiskCountryDetails = ({ control, detailsErrors = {}, countries, taxResidenceCodes, showOtherJurisdictionQuestion, onCountryAdded, onCountrySelected }) => {
   const holdResidenceInOtherJurisdiction = useWatch({
     control,
     name: 'highRiskCountryDetails.holdResidenceInOtherJurisdiction',
@@ -39,18 +39,24 @@ const HighRiskCountryDetails = ({ control, detailsErrors = {}, countries, taxRes
   const countryName = (countryCode) => countryNames.get(countryCode) || countryCode
 
   const handleHoldResidenceCountryChange = (countryCode) => {
-    onCountryAdded(countryCode)
+    onCountrySelected(countryCode)
   }
 
   const handleSpentNinetyDaysAddChange = (answer) => {
     if (answer === true) {
-      onCountryAdded(spentNinetyDaysInOtherJurisdictionCountryPreviousYearCountry)
+      onCountryAdded(
+        spentNinetyDaysInOtherJurisdictionCountryPreviousYearCountry,
+        'highRiskCountryDetails.spentNinetyDaysInOtherJurisdictionCountryPreviousYearCountry',
+      )
     }
   }
 
   const handleIncomeTaxAddChange = (answer) => {
     if (answer === true) {
-      onCountryAdded(filledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearCountry)
+      onCountryAdded(
+        filledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearCountry,
+        'highRiskCountryDetails.filledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearCountry',
+      )
     }
   }
 
