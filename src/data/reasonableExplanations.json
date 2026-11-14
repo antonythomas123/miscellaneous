@@ -1,0 +1,5 @@
+[
+  { "name": "The country is not a tax residence", "value": "NOT_TAX_RESIDENT" },
+  { "name": "The country does not require tax residence registration", "value": "NO_REGISTRATION_REQUIRED" },
+  { "name": "The country is unable to issue the required tax documentation", "value": "DOCUMENTATION_UNAVAILABLE" }
+]

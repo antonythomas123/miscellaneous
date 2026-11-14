@@ -1,0 +1,40 @@
+{
+    "countryOfTaxResidence": [
+        {
+            "countryOfTaxResidenceCode": "",
+            "notApplicableTIN": false,
+            "taxIdentificationNumber": "",
+            "explanationForReasonB": "",
+            "hasHighRiskCountries": false,
+            "reasonForNotFillingTINNumber": "",
+            "obtainResidenceRightsUnderCitizenshipByInvestmentScheme": null,
+            "incomeJurisdiction": null
+        }
+    ],
+    "highRiskCountryDetails": {
+        "holdResidenceInOtherJurisdiction": null,
+        "holdResidenceInOtherJurisdictionCountry": null,
+        "spentNinetyDaysInOtherJurisdictionCountryPreviousYear": false,
+        "spentNinetyDaysInOtherJurisdictionCountryPreviousYearTwo": null,
+        "spentNinetyDaysInOtherJurisdictionCountryPreviousYearCountry": null,
+        "spentNinetyDaysInOtherJurisdictionCountryPreviousYearCountryTwo": null,
+        "reasonForSpentNinetyDaysInOtherJurisdictionCountryPreviousYear": null,
+        "reasonForSpentNinetyDaysInOtherJurisdictionCountryPreviousYearTwo": null,
+        "otherReasonExplanationsForSpentNinetyDaysInOtherJurisdictionCountryPreviousYear": null,
+        "otherReasonExplanationsForSpentNinetyDaysInOtherJurisdictionCountryPreviousYearTwo": null,
+        "filledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYear": null,
+        "filledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearTwo": null,
+        "filledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearCountry": null,
+        "reasonForFilledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYear": null,
+        "reasonForFilledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearTwo": null,
+        "otherReasonExplanationsForFilledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYear": null,
+        "otherReasonExplanationsForFilledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearTwo": null,
+        "countryOfTaxResidencePersonalIncomeTax": false,
+        "countryOfTaxResidencespentNinetyDays": false,
+        "countryOfTaxResidencespentNinetyDaysTwo": null,
+        "ninetyDaysReasonCode": null,
+        "incomeTaxReasonCode": null
+    },
+    "hasCRSIndicia": false,
+    "indiciaCheck": null
+}

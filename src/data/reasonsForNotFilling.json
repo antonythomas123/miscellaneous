@@ -1,0 +1,14 @@
+[
+    {
+        "name": "Obtained by birth",
+        "value": "A"
+    }, 
+    {
+        "name": "Give reason",
+        "value": "B"
+    },
+    {
+        "name": "TIN not required",
+        "value": "C"
+    }
+]
