@@ -1,4 +1,3 @@
-import React from 'react'
 import CustomRadio from './CustomRadio'
 import { Controller } from 'react-hook-form'
 

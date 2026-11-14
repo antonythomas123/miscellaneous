@@ -1,11 +1,11 @@
+import { memo, useMemo } from 'react'
 import { useWatch } from 'react-hook-form'
 import { ControlledRadioGroup } from '../../components/CustomRadioGroup'
 import { ControlledSelect } from '../../components/CustomSelect'
 import { Collapse } from '@mui/material'
 import reasonableExplanations from '../../data/reasonableExplanations.json'
 
-const HighRiskCountryDetails = ({ control, errors, countries, taxResidenceCodes, showOtherJurisdictionQuestion, onCountryAdded }) => {
-  const detailsErrors = errors?.highRiskCountryDetails || {}
+const HighRiskCountryDetails = ({ control, detailsErrors = {}, countries, taxResidenceCodes, showOtherJurisdictionQuestion, onCountryAdded }) => {
   const holdResidenceInOtherJurisdiction = useWatch({
     control,
     name: 'highRiskCountryDetails.holdResidenceInOtherJurisdiction',
@@ -31,8 +31,12 @@ const HighRiskCountryDetails = ({ control, errors, countries, taxResidenceCodes,
     name: 'highRiskCountryDetails.countryOfTaxResidencePersonalIncomeTax',
   })
 
+  const countryNames = useMemo(
+    () => new Map((countries || []).map((country) => [country.value, country.name])),
+    [countries],
+  )
   const isTaxResidenceCountry = (countryCode) => taxResidenceCodes.includes(countryCode)
-  const countryName = (countryCode) => countries?.find((country) => country.value === countryCode)?.name || countryCode
+  const countryName = (countryCode) => countryNames.get(countryCode) || countryCode
 
   const handleHoldResidenceCountryChange = (countryCode) => {
     onCountryAdded(countryCode)
@@ -99,9 +103,14 @@ const HighRiskCountryDetails = ({ control, errors, countries, taxResidenceCodes,
             isEditMode={true}
           />
 
-          {!isTaxResidenceCountry(spentNinetyDaysInOtherJurisdictionCountryPreviousYearCountry) &&
-            spentNinetyDaysInOtherJurisdictionCountryPreviousYearCountry && (
-              <>
+          <Collapse
+            in={!isTaxResidenceCountry(spentNinetyDaysInOtherJurisdictionCountryPreviousYearCountry) &&
+              !!spentNinetyDaysInOtherJurisdictionCountryPreviousYearCountry}
+            timeout={300}
+            mountOnEnter
+            unmountOnExit
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <ControlledRadioGroup
                   name="highRiskCountryDetails.countryOfTaxResidencespentNinetyDays"
                   control={control}
@@ -122,8 +131,8 @@ const HighRiskCountryDetails = ({ control, errors, countries, taxResidenceCodes,
                     isEditMode={true}
                   />
                 </Collapse>
-              </>
-            )}
+            </div>
+          </Collapse>
         </div>
       </Collapse>
 
@@ -137,9 +146,14 @@ const HighRiskCountryDetails = ({ control, errors, countries, taxResidenceCodes,
         isEditMode={true}
       />
 
-      {!isTaxResidenceCountry(filledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearCountry) &&
-        filledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearCountry && (
-          <>
+      <Collapse
+        in={!isTaxResidenceCountry(filledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearCountry) &&
+          !!filledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearCountry}
+        timeout={300}
+        mountOnEnter
+        unmountOnExit
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <ControlledRadioGroup
               name="highRiskCountryDetails.countryOfTaxResidencePersonalIncomeTax"
               control={control}
@@ -160,10 +174,10 @@ const HighRiskCountryDetails = ({ control, errors, countries, taxResidenceCodes,
                 isEditMode={true}
               />
             </Collapse>
-          </>
-        )}
+        </div>
+      </Collapse>
     </div>
   )
 }
 
-export default HighRiskCountryDetails
+export default memo(HighRiskCountryDetails)

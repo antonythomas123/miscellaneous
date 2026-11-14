@@ -29,7 +29,7 @@ const CustomCheckbox = ({ checked, onChange, disabled = false }) => {
 
 export default CustomCheckbox
 
-export const ControlledCheckbox = ({ name, control, disabled }) => {
+export const ControlledCheckbox = ({ name, control, disabled, onChange }) => {
     return (
         <Controller
             name={name}
@@ -37,7 +37,10 @@ export const ControlledCheckbox = ({ name, control, disabled }) => {
             render={({ field }) => (
                 <CustomCheckbox
                     checked={!!field.value}
-                    onChange={field.onChange}
+                    onChange={(nextValue) => {
+                        field.onChange(nextValue)
+                        onChange?.(nextValue)
+                    }}
                     disabled={disabled}
                 />
             )}

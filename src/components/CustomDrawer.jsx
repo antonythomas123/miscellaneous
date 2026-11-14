@@ -1,5 +1,12 @@
 import { styled, SwipeableDrawer } from '@mui/material'
-import React, { useEffect } from 'react'
+
+const Puller = styled("div")({
+    width: 40,
+    height: 4,
+    position: "absolute",
+    top: 8,
+    left: "calc(50% - 15px)"
+})
 
 const CustomDrawer = ({
     openDrawer = false,
@@ -7,24 +14,7 @@ const CustomDrawer = ({
     title = "",
     children = null,
     subtitle = "",
-    height = "",
-    launchOptions = null,
 }) => {
-
-    const inputElement = React.useRef(null)
-
-    const Puller = styled("div")(({ theme }) => ({
-        width: 40,
-        height: 4,
-        position: "absolute",
-        top: 8,
-        left: "calc(50% - 15px)"
-    }))
-
-    useEffect(() => {
-        inputElement?.current?.focus()
-    }, [])
-
     return (
         <SwipeableDrawer
             anchor="bottom"

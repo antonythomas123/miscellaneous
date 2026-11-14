@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { memo, useMemo } from 'react'
 import { useWatch } from 'react-hook-form'
 import { Collapse } from '@mui/material'
 import { ControlledSelect } from '../../components/CustomSelect'
@@ -8,28 +8,36 @@ import { ControlledRadioGroup } from '../../components/CustomRadioGroup'
 import reasonForNotFillingData from '../../data/reasonsForNotFilling.json'
 import { HIGH_RISK_COUNTRIES } from '../../constants/constants'
 
-const ResidencyRow = ({ index, control, errors, canRemove, onRemove, fields, countries, selectedCountryCodes }) => {
+const ResidencyRow = ({ index, control, setValue, rowErrors, canRemove, onRemove, countries, selectedCountryCodes }) => {
   const base = `countryOfTaxResidence.${index}`
-  const rowErrors = errors?.countryOfTaxResidence?.[index] || {}
 
   const notApplicabeTIN = useWatch({ control, name: `${base}.notApplicableTIN` })
   const reason = useWatch({ control, name: `${base}.reasonForNotFillingTINNumber` })
   const countryOfTaxResidenceCode = useWatch({ control, name: `${base}.countryOfTaxResidenceCode` })
 
-  const [reasonForNotFilling, setReasonForNotFilling] = useState(reasonForNotFillingData)
-
   const isHighRiskCountry = HIGH_RISK_COUNTRIES.includes(countryOfTaxResidenceCode)
-  const residenceCountry = countries?.find(x => x?.value === countryOfTaxResidenceCode)?.name;
-  const availableCountries = countries?.filter((country) => (
-    country?.value === countryOfTaxResidenceCode || !selectedCountryCodes?.includes(country?.value)
-  )) || []
+  const residenceCountry = useMemo(
+    () => countries?.find((country) => country?.value === countryOfTaxResidenceCode)?.name,
+    [countries, countryOfTaxResidenceCode],
+  )
+  const availableCountries = useMemo(
+    () => countries?.filter((country) => (
+      country?.value === countryOfTaxResidenceCode || !selectedCountryCodes?.includes(country?.value)
+    )) || [],
+    [countries, countryOfTaxResidenceCode, selectedCountryCodes],
+  )
+  const handleNotApplicableTINChange = (isNotApplicable) => {
+    if (isNotApplicable) {
+      setValue(`${base}.taxIdentificationNumber`, '')
+    }
+  }
 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: "center" }}>
         <span>Country {index + 1}</span>
-        {fields.length > 1 && <span onClick={() => onRemove()}>Delete</span>}
+        {canRemove && <span onClick={() => onRemove(index)}>Delete</span>}
       </div>
 
       <ControlledSelect
@@ -55,6 +63,7 @@ const ResidencyRow = ({ index, control, errors, canRemove, onRemove, fields, cou
         <ControlledCheckbox
           name={`${base}.notApplicableTIN`}
           control={control}
+          onChange={handleNotApplicableTINChange}
         />
         <span>TIN is not applicable</span>
 
@@ -65,7 +74,7 @@ const ResidencyRow = ({ index, control, errors, canRemove, onRemove, fields, cou
           name={`${base}.reasonForNotFillingTINNumber`}
           control={control}
           isEditMode={true}
-          options={reasonForNotFilling || []}
+          options={reasonForNotFillingData}
           label="Reason for not filling TIN number"
           error={rowErrors?.reasonForNotFillingTINNumber?.message}
         />
@@ -82,7 +91,7 @@ const ResidencyRow = ({ index, control, errors, canRemove, onRemove, fields, cou
       </Collapse>
 
 
-      {isHighRiskCountry && (
+      <Collapse in={isHighRiskCountry} timeout={300} mountOnEnter unmountOnExit>
         <ControlledRadioGroup
           name={`${base}.obtainResidenceRightsUnderCitizenshipByInvestmentScheme`}
           control={control}
@@ -91,9 +100,9 @@ const ResidencyRow = ({ index, control, errors, canRemove, onRemove, fields, cou
           error={rowErrors?.obtainResidenceRightsUnderCitizenshipByInvestmentScheme?.message}
           label={`Did you obtain residence rights in ${residenceCountry} under a Citizenship by investment/Residency by Investment scheme`}
         />
-      )}
+      </Collapse>
     </div>
   )
 }
 
-export default ResidencyRow
+export default memo(ResidencyRow)

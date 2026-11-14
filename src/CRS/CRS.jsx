@@ -1,76 +1,71 @@
-import React, { useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useFieldArray, useForm, useWatch } from 'react-hook-form'
+import { TransitionGroup } from 'react-transition-group'
 import ResidencyRow from './components/ResidencyRow'
 import HighRiskCountryDetails from './components/HighRiskCountryDetails'
-import CRSIndiciaDetails from './components/CRSIndiciaDetails'
-import { Button } from '@mui/material'
+import { Button, Collapse } from '@mui/material'
 import countriesData from '../data/countries.json'
 import { HIGH_RISK_COUNTRIES } from '../constants/constants'
-import { useStore } from '../providers/StateProvider'
-import { crsSchema, yupFormResolver } from './validationSchema'
+import { createCrsSchema, yupFormResolver } from './validationSchema'
+
+const EMPTY_LOCALES = {}
+
+const initialCountryResidence = {
+    countryOfTaxResidenceCode: '',
+    notApplicableTIN: false,
+    taxIdentificationNumber: '',
+    explanationForReasonB: '',
+    hasHighRiskCountries: false,
+    reasonForNotFillingTINNumber: '',
+    obtainResidenceRightsUnderCitizenshipByInvestmentScheme: null,
+    incomeJurisdiction: null,
+}
+
+const createCountryResidence = (countryCode = '') => ({
+    ...initialCountryResidence,
+    countryOfTaxResidenceCode: countryCode,
+})
 
 
-
-const CRS = () => {
-    const initialState = {
-        countryOfTaxResidenceCode: '',
-        notApplicableTIN: false,
-        taxIdentificationNumber: '',
-        explanationForReasonB: '',
-        hasHighRiskCountries: false,
-        reasonForNotFillingTINNumber: '',
-        obtainResidenceRightsUnderCitizenshipByInvestmentScheme: null,
-        incomeJurisdiction: null,
-    }
-
-    const { kycDetails } = useStore()
+const CRS = ({ locales = EMPTY_LOCALES }) => {
+    const crsSchema = useMemo(() => createCrsSchema(locales), [locales])
+    const resolver = useMemo(() => yupFormResolver(crsSchema), [crsSchema])
+    const defaultValues = useMemo(() => ({
+        countryOfTaxResidence: [createCountryResidence()],
+        highRiskCountryDetails: {
+            holdResidenceInOtherJurisdiction: null,
+            holdResidenceInOtherJurisdictionCountry: null,
+            spentNinetyDaysInOtherJurisdictionCountryPreviousYear: null,
+            spentNinetyDaysInOtherJurisdictionCountryPreviousYearTwo: null,
+            spentNinetyDaysInOtherJurisdictionCountryPreviousYearCountry: null,
+            spentNinetyDaysInOtherJurisdictionCountryPreviousYearCountryTwo: null,
+            reasonForSpentNinetyDaysInOtherJurisdictionCountryPreviousYear: null,
+            reasonForSpentNinetyDaysInOtherJurisdictionCountryPreviousYearTwo: null,
+            otherReasonExplanationsForSpentNinetyDaysInOtherJurisdictionCountryPreviousYear: null,
+            otherReasonExplanationsForSpentNinetyDaysInOtherJurisdictionCountryPreviousYearTwo: null,
+            filledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYear: null,
+            filledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearTwo: null,
+            filledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearCountry: null,
+            reasonForFilledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYear: null,
+            reasonForFilledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearTwo: null,
+            otherReasonExplanationsForFilledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYear: null,
+            otherReasonExplanationsForFilledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearTwo: null,
+            countryOfTaxResidencePersonalIncomeTax: null,
+            countryOfTaxResidencespentNinetyDays: null,
+            countryOfTaxResidencespentNinetyDaysTwo: null,
+            ninetyDaysReasonCode: null,
+            incomeTaxReasonCode: null,
+        },
+        hasCRSIndicia: false,
+        indiciaCheck: null,
+    }), [])
 
     const { control, handleSubmit, setValue, formState: { errors } } = useForm({
-        defaultValues: {
-            countryOfTaxResidence: [initialState],
-            highRiskCountryDetails: {
-                holdResidenceInOtherJurisdiction: null,
-                holdResidenceInOtherJurisdictionCountry: null,
-                spentNinetyDaysInOtherJurisdictionCountryPreviousYear: null,
-                spentNinetyDaysInOtherJurisdictionCountryPreviousYearTwo: null,
-                spentNinetyDaysInOtherJurisdictionCountryPreviousYearCountry: null,
-                spentNinetyDaysInOtherJurisdictionCountryPreviousYearCountryTwo: null,
-                reasonForSpentNinetyDaysInOtherJurisdictionCountryPreviousYear: null,
-                reasonForSpentNinetyDaysInOtherJurisdictionCountryPreviousYearTwo: null,
-                otherReasonExplanationsForSpentNinetyDaysInOtherJurisdictionCountryPreviousYear: null,
-                otherReasonExplanationsForSpentNinetyDaysInOtherJurisdictionCountryPreviousYearTwo: null,
-                filledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYear: null,
-                filledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearTwo: null,
-                filledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearCountry: null,
-                reasonForFilledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYear: null,
-                reasonForFilledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearTwo: null,
-                otherReasonExplanationsForFilledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYear: null,
-                otherReasonExplanationsForFilledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearTwo: null,
-                countryOfTaxResidencePersonalIncomeTax: null,
-                countryOfTaxResidencespentNinetyDays: null,
-                countryOfTaxResidencespentNinetyDaysTwo: null,
-                ninetyDaysReasonCode: null,
-                incomeTaxReasonCode: null,
-            },
-            hasCRSIndicia: false,
-            indiciaCheck: {
-                countryOfResidency: {
-                    addCountryAsTaxResidence: null,
-                    reasonableExplanation: null,
-                },
-                residentialAddressCountry: {
-                    addCountryAsTaxResidence: null,
-                    reasonableExplanation: null,
-                },
-                employmentDetailsCountry: {
-                    addCountryAsTaxResidence: null,
-                    reasonableExplanation: null,
-                },
-            },
-        },
+        defaultValues,
         shouldUnregister: true,
-        mode: "onChange",
-        resolver: yupFormResolver(crsSchema),
+        mode: "onSubmit",
+        reValidateMode: "onChange",
+        resolver,
     })
 
     const { fields, append, remove, } = useFieldArray({
@@ -78,53 +73,38 @@ const CRS = () => {
         name: "countryOfTaxResidence"
     })
 
-    const [countries, setCountries] = useState(countriesData || [])
-    const [hasReviewedCRS, setHasReviewedCRS] = useState(false)
+    const countries = countriesData
     const countryOfTaxResidence = useWatch({ control, name: 'countryOfTaxResidence' }) || []
-    const taxResidenceCodes = countryOfTaxResidence.map((field) => field?.countryOfTaxResidenceCode).filter(Boolean)
-    const highRiskCountryFields = countryOfTaxResidence.filter((field) => HIGH_RISK_COUNTRIES.includes(field?.countryOfTaxResidenceCode))
-    const hasHighRiskCountryWithResidenceRights = highRiskCountryFields.some(
-        (field) => field.obtainResidenceRightsUnderCitizenshipByInvestmentScheme === true
+    const taxResidenceCodeKey = countryOfTaxResidence
+        .map((field) => field?.countryOfTaxResidenceCode)
+        .filter(Boolean)
+        .join('|')
+    const taxResidenceCodes = useMemo(
+        () => (taxResidenceCodeKey ? taxResidenceCodeKey.split('|') : []),
+        [taxResidenceCodeKey],
+    )
+    const highRiskCountryCount = countryOfTaxResidence.filter((field) => (
+        HIGH_RISK_COUNTRIES.includes(field?.countryOfTaxResidenceCode)
+    )).length
+    const hasHighRiskCountryWithResidenceRights = countryOfTaxResidence.some(
+        (field) => HIGH_RISK_COUNTRIES.includes(field?.countryOfTaxResidenceCode) &&
+            field.obtainResidenceRightsUnderCitizenshipByInvestmentScheme === true
     )
 
-    const appendCountryToTaxResidence = (countryCode) => {
+    const appendCountryToTaxResidence = useCallback((countryCode) => {
         if (!countryCode || taxResidenceCodes.includes(countryCode)) return
 
-        append({
-            ...initialState,
-            countryOfTaxResidenceCode: countryCode,
-        })
-    }
+        append(createCountryResidence(countryCode))
+    }, [append, taxResidenceCodes])
 
-    const crsIndicia = [
-        {
-            key: 'countryOfResidency',
-            countryCode: kycDetails?.personalInformation?.personalDetails?.countryOfResidency,
-            fieldName: 'Country of Residency in Personal details',
-        },
-        {
-            key: 'residentialAddressCountry',
-            countryCode: kycDetails?.residenceDetails?.residenceAddress?.country,
-            fieldName: 'Country in Residential Address',
-        },
-        {
-            key: 'employmentDetailsCountry',
-            countryCode: kycDetails?.employmentDetails?.country,
-            fieldName: 'Country in Employment details',
-        },
-    ]
+    const appendEmptyCountry = useCallback(() => {
+        append(createCountryResidence())
+    }, [append])
 
     const onSubmit = () => {
         console.log("submitting.....")
-        const hasMissingIndicia = crsIndicia.some((item) => (
-            item.countryCode && !taxResidenceCodes.includes(item.countryCode)
-        ))
-
-        setValue('hasCRSIndicia', hasMissingIndicia)
-        setHasReviewedCRS(true)
     }
 
-    console.log({kycDetails})
     return (
         <div
             style={{
@@ -144,37 +124,50 @@ const CRS = () => {
                 id="crs-self-certification-form"
             >
                 <div style={{ display: "flex", flexDirection: 'column', gap: '24px' }}>
-                    {fields.map((item, index) => (
-                        <ResidencyRow
-                            key={item.id}
-                            index={index}
-                            control={control}
-                            errors={errors}
-                            canRemove={fields.length > 1}
-                            onRemove={() => remove(index)}
-                            fields={fields}
-                            countries={countries || []}
-                            selectedCountryCodes={taxResidenceCodes}
-                        />
-                    ))}
+                    <TransitionGroup component={null}>
+                        {fields.map((item, index) => (
+                            <Collapse
+                                key={item.id}
+                                timeout={350}
+                                mountOnEnter
+                                unmountOnExit
+                            >
+                                <ResidencyRow
+                                    index={index}
+                                    control={control}
+                                    setValue={setValue}
+                                    rowErrors={errors?.countryOfTaxResidence?.[index]}
+                                    canRemove={fields.length > 1}
+                                    onRemove={remove}
+                                    countries={countries}
+                                    selectedCountryCodes={taxResidenceCodes}
+                                />
+                            </Collapse>
+                        ))}
+                    </TransitionGroup>
                 </div>
 
                 {fields?.length < 5 && (
                     <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
-                        <Button variant='contained' type="button" onClick={() => append(initialState)}>Add Country</Button>
+                        <Button variant='contained' type="button" onClick={appendEmptyCountry}>Add Country</Button>
                     </div>
                 )}
 
-                {hasHighRiskCountryWithResidenceRights && (
+                <Collapse
+                    in={hasHighRiskCountryWithResidenceRights}
+                    timeout={350}
+                    mountOnEnter
+                    unmountOnExit
+                >
                     <HighRiskCountryDetails
                         control={control}
-                        errors={errors}
-                        countries={countries || []}
+                        detailsErrors={errors?.highRiskCountryDetails}
+                        countries={countries}
                         taxResidenceCodes={taxResidenceCodes}
-                        showOtherJurisdictionQuestion={highRiskCountryFields.length < 2}
+                        showOtherJurisdictionQuestion={highRiskCountryCount < 2}
                         onCountryAdded={appendCountryToTaxResidence}
                     />
-                )}
+                </Collapse>
 
             </form>
 

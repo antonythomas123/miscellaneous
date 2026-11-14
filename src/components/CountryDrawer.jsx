@@ -1,5 +1,5 @@
 import { Button, Drawer, IconButton } from '@mui/material'
-import React, { useReducer, useRef, useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import CustomSearch from './CustomSearch'
 import { Close } from '@mui/icons-material'
 
@@ -13,7 +13,6 @@ const CountryDrawer = ({
     setSearch,
     placeholder = "",
     buttonText = "",
-    launchOptions = null,
 }) => {
     const inputElement = useRef(null)
 
