@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { TransitionGroup } from 'react-transition-group'
 import ResidencyRow from './components/ResidencyRow'
@@ -7,6 +7,7 @@ import { Button, Collapse } from '@mui/material'
 import countriesData from '../data/countries.json'
 import { HIGH_RISK_COUNTRIES } from '../constants/constants'
 import { createCrsSchema, yupFormResolver } from './validationSchema'
+import CustomModal from '../components/CustomModal'
 
 const EMPTY_LOCALES = {}
 
@@ -74,6 +75,9 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
     })
 
     const countries = countriesData
+
+    const [openAddCountryModal, setOpenAddCountryModal] = useState(false);
+
     const countryOfTaxResidence = useWatch({ control, name: 'countryOfTaxResidence' }) || []
     const taxResidenceCodeKey = countryOfTaxResidence
         .map((field) => field?.countryOfTaxResidenceCode)
@@ -118,7 +122,7 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
                     height: '100%',
                     overflowY: 'auto',
                     boxSizing: 'border-box',
-                    paddingBottom: '112px',
+                    paddingBottom: '200px',
                 }}
                 onSubmit={handleSubmit(onSubmit)}
                 id="crs-self-certification-form"
@@ -183,6 +187,9 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
                     borderTop: '1px solid #eee',
                 }}
             >
+                <div style={{ color: 'red', background: '#FF7F7F', borderRadius: '8px', padding: '12px', marginBottom: '24px' }}>
+                    Only five countries can be added as Country(ies) of Tax Residence
+                </div>
                 <Button
                     variant="contained"
                     type="submit"
@@ -192,6 +199,14 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
                     Review CRS Self certification form
                 </Button>
             </div>
+
+            <CustomModal
+                open={openAddCountryModal}
+                onClose={() => setOpenAddCountryModal(prev => !prev)}
+                content={`Do you want to add x Country as Country of Tax Residence ?`}
+                cancelButtonText={"Cancel"}
+                actionButtonText={"Add"}
+            />
         </div>
     )
 }
