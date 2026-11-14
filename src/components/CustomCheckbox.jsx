@@ -1,49 +1,56 @@
-import { Controller } from 'react-hook-form'
-import CheckIcon from '@mui/icons-material/Check'
+import { memo, useCallback } from 'react'
+import { useController } from 'react-hook-form'
+import { CheckIcon } from './Icons'
 
-const checkboxStyle = (checked, disabled) => ({
+const checkboxStyle = {
     width: "24px",
     height: "24px",
     borderRadius: "4px",
-    border: checked ? "none" : "1px solid #02142E",
-    backgroundColor: checked ? "#1501FF" : "transparent",
+    border: "1px solid #02142E",
+    backgroundColor: "transparent",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    cursor: disabled ? "not-allowed" : "pointer",
+    cursor: "pointer",
     flexShrink: 0,
-    opacity: disabled ? 0.5 : 1,
     boxSizing: "border-box",
     transition: "background-color 0.15s ease, border-color 0.15s ease",
-})
+}
+const checkedStyle = { ...checkboxStyle, border: "none", backgroundColor: "#1501FF" }
+const uncheckedStyle = { ...checkboxStyle, border: "1px solid #02142E", backgroundColor: "transparent" }
+const checkedDisabledStyle = { ...checkedStyle, opacity: 0.5, cursor: "not-allowed" }
+const uncheckedDisabledStyle = { ...uncheckedStyle, opacity: 0.5, cursor: "not-allowed" }
 
-const CustomCheckbox = ({ checked, onChange, disabled = false }) => {
+const CustomCheckbox = memo(({ checked, onChange, disabled = false }) => {
+    const handleClick = useCallback(() => {
+        if (!disabled) onChange?.(!checked)
+    }, [checked, disabled, onChange])
+
     return (
-        <div onClick={() => !disabled && onChange?.(!checked)}>
-            <div style={checkboxStyle(checked, disabled)}>
-                {checked && <CheckIcon sx={{ color: "#fff", fontSize: 18 }} />}
+        <div
+            onClick={handleClick}
+            role="checkbox"
+            aria-checked={!!checked}
+            aria-disabled={disabled}
+        >
+            <div style={disabled
+                ? (checked ? checkedDisabledStyle : uncheckedDisabledStyle)
+                : (checked ? checkedStyle : uncheckedStyle)}>
+                {checked && <CheckIcon />}
             </div>
         </div>
     )
-}
+})
 
 export default CustomCheckbox
 
-export const ControlledCheckbox = ({ name, control, disabled, onChange }) => {
-    return (
-        <Controller
-            name={name}
-            control={control}
-            render={({ field }) => (
-                <CustomCheckbox
-                    checked={!!field.value}
-                    onChange={(nextValue) => {
-                        field.onChange(nextValue)
-                        onChange?.(nextValue)
-                    }}
-                    disabled={disabled}
-                />
-            )}
-        />
-    )
-}
+export const ControlledCheckbox = memo(({ name, control, disabled, onChange }) => {
+    const { field } = useController({ name, control })
+    const fieldOnChange = field.onChange
+    const handleChange = useCallback((nextValue) => {
+        fieldOnChange(nextValue)
+        onChange?.(nextValue)
+    }, [fieldOnChange, onChange])
+
+    return <CustomCheckbox checked={!!field.value} onChange={handleChange} disabled={disabled} />
+})

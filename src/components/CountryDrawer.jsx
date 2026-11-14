@@ -1,55 +1,51 @@
+import { memo } from 'react'
 import { Button, Drawer, IconButton } from '@mui/material'
-import { useEffect, useRef } from 'react'
 import CustomSearch from './CustomSearch'
-import { Close } from '@mui/icons-material'
+import { CloseIcon } from './Icons'
 
-const CountryDrawer = ({
+const NOOP = () => { }
+const scrollableContentStyle = {
+    flex: 1,
+    minHeight: 0,
+    overflowY: 'auto',
+    padding: '16px',
+}
+const footerStyle = {
+    flexShrink: 0,
+    padding: '16px',
+    backgroundColor: '#fff',
+    borderTop: '1px solid #eee',
+}
+const paperSx = {
+    height: '80vh',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+}
+
+const CountryDrawer = memo(({
     openDrawer = false,
-    onClose = () => { },
+    onClose = NOOP,
     title = "",
     children = null,
-    onButtonClick = () => { },
+    onButtonClick = NOOP,
     search,
     setSearch,
     placeholder = "",
     buttonText = "",
 }) => {
-    const inputElement = useRef(null)
-
-    useEffect(() => {
-        inputElement?.current?.focus()
-    }, [])
-
     return (
         <Drawer
             anchor="bottom"
             open={openDrawer}
             onClose={onClose}
             transitionDuration={500}
-            ModalProps={{
-                keepMounted: true,
-            }}
-            PaperProps={{
-                sx: {
-                    height: '80vh',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    overflow: 'hidden',
-                },
-            }}
+            PaperProps={{ sx: paperSx }}
         >
-            {/* Scrollable content */}
-            <div
-                style={{
-                    flex: 1,
-                    minHeight: 0,
-                    overflowY: 'auto',
-                    padding: '16px',
-                }}
-            >
+            <div style={scrollableContentStyle}>
                 <div>
                     <IconButton onClick={onClose}>
-                        <Close />
+                        <CloseIcon />
                     </IconButton>
                     <span>{title}</span>
                 </div>
@@ -65,24 +61,17 @@ const CountryDrawer = ({
                 </div>
             </div>
 
-            <div
-                style={{
-                    flexShrink: 0,
-                    padding: '16px',
-                    backgroundColor: '#fff',
-                    borderTop: '1px solid #eee',
-                }}
-            >
+            <div style={footerStyle}>
                 <Button
                     variant="contained"
                     onClick={onButtonClick}
-                    style={{ width: '100%' }}
+                    fullWidth
                 >
                     {buttonText || ""}
                 </Button>
             </div>
         </Drawer>
     )
-}
+})
 
 export default CountryDrawer

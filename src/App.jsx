@@ -1,13 +1,7 @@
 import CRS from "./CRS/CRS"
-import StateProvider from "./providers/StateProvider"
 
 function App() {
-
-  return (
-    <StateProvider>
-      <CRS />
-    </StateProvider>
-  )
+  return <CRS />
 }
 
 export default App

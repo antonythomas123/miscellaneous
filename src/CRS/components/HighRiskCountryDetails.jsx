@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo, useCallback, useMemo } from 'react'
 import { useWatch } from 'react-hook-form'
 import { ControlledRadioGroup } from '../../components/CustomRadioGroup'
 import { ControlledSelect } from '../../components/CustomSelect'
@@ -35,30 +35,37 @@ const HighRiskCountryDetails = ({ control, detailsErrors = {}, countries, taxRes
     () => new Map((countries || []).map((country) => [country.value, country.name])),
     [countries],
   )
-  const isTaxResidenceCountry = (countryCode) => taxResidenceCodes.includes(countryCode)
-  const countryName = (countryCode) => countryNames.get(countryCode) || countryCode
+  const isTaxResidenceCountry = useCallback(
+    (countryCode) => taxResidenceCodes.includes(countryCode),
+    [taxResidenceCodes],
+  )
+  const countryName = useCallback(
+    (countryCode) => countryNames.get(countryCode) || countryCode,
+    [countryNames],
+  )
 
-  const handleHoldResidenceCountryChange = (countryCode) => {
-    onCountrySelected(countryCode)
-  }
+  const handleHoldResidenceCountryChange = useCallback(
+    (countryCode) => onCountrySelected(countryCode),
+    [onCountrySelected],
+  )
 
-  const handleSpentNinetyDaysAddChange = (answer) => {
+  const handleSpentNinetyDaysAddChange = useCallback((answer) => {
     if (answer === true) {
       onCountryAdded(
         spentNinetyDaysInOtherJurisdictionCountryPreviousYearCountry,
         'highRiskCountryDetails.spentNinetyDaysInOtherJurisdictionCountryPreviousYearCountry',
       )
     }
-  }
+  }, [onCountryAdded, spentNinetyDaysInOtherJurisdictionCountryPreviousYearCountry])
 
-  const handleIncomeTaxAddChange = (answer) => {
+  const handleIncomeTaxAddChange = useCallback((answer) => {
     if (answer === true) {
       onCountryAdded(
         filledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearCountry,
         'highRiskCountryDetails.filledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearCountry',
       )
     }
-  }
+  }, [filledPersonalIncomeTaxInOtherJurisdictionCountryPreviousYearCountry, onCountryAdded])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '24px' }}>

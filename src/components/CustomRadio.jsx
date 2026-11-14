@@ -1,4 +1,6 @@
-const CustomRadio = ({
+import { memo } from 'react'
+
+const CustomRadio = memo(({
     isChecked,
     onChange,
     name,
@@ -25,7 +27,7 @@ const CustomRadio = ({
             </span>
         </label>
     )
-}
+})
 
 export default CustomRadio
 

@@ -1,16 +1,19 @@
-import { styled, SwipeableDrawer } from '@mui/material'
+import { memo } from 'react'
+import { SwipeableDrawer } from '@mui/material'
 
-const Puller = styled("div")({
+const NOOP = () => { }
+const pullerStyle = {
     width: 40,
     height: 4,
     position: "absolute",
     top: 8,
-    left: "calc(50% - 15px)"
-})
+    left: "calc(50% - 15px)",
+}
+const contentStyle = { flex: 1, overflowY: "auto" }
 
-const CustomDrawer = ({
+const CustomDrawer = memo(({
     openDrawer = false,
-    onClose = () => { },
+    onClose = NOOP,
     title = "",
     children = null,
     subtitle = "",
@@ -21,25 +24,22 @@ const CustomDrawer = ({
             open={openDrawer}
             onClose={onClose}
             swipeAreaWidth={56}
-            disableSwipeToOpen={true}
+            disableSwipeToOpen
             transitionDuration={500}
-            ModalProps={{
-                keepMounted: true,
-            }}
         >
             <div>
-                <Puller />
+                <div style={pullerStyle} />
                 <div>
                     <span>{title}</span>
                     <span>{subtitle}</span>
                 </div>
 
-                <div style={{ flex: 1, overflowY: "auto" }}>
+                <div style={contentStyle}>
                     {children}
                 </div>
             </div>
         </SwipeableDrawer>
     )
-}
+})
 
 export default CustomDrawer

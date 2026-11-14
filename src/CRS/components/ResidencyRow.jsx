@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo, useCallback, useMemo } from 'react'
 import { useWatch } from 'react-hook-form'
 import { Collapse } from '@mui/material'
 import { ControlledSelect } from '../../components/CustomSelect'
@@ -16,28 +16,30 @@ const ResidencyRow = ({ index, control, setValue, rowErrors, canRemove, onRemove
   const countryOfTaxResidenceCode = useWatch({ control, name: `${base}.countryOfTaxResidenceCode` })
 
   const isHighRiskCountry = HIGH_RISK_COUNTRIES.includes(countryOfTaxResidenceCode)
-  const residenceCountry = useMemo(
-    () => countries?.find((country) => country?.value === countryOfTaxResidenceCode)?.name,
-    [countries, countryOfTaxResidenceCode],
+  const countryNames = useMemo(
+    () => new Map((countries || []).map((country) => [country.value, country.name])),
+    [countries],
   )
+  const residenceCountry = countryNames.get(countryOfTaxResidenceCode)
   const availableCountries = useMemo(
     () => countries?.filter((country) => (
       country?.value === countryOfTaxResidenceCode || !selectedCountryCodes?.includes(country?.value)
     )) || [],
     [countries, countryOfTaxResidenceCode, selectedCountryCodes],
   )
-  const handleNotApplicableTINChange = (isNotApplicable) => {
+  const handleNotApplicableTINChange = useCallback((isNotApplicable) => {
     if (isNotApplicable) {
       setValue(`${base}.taxIdentificationNumber`, '')
     }
-  }
+  }, [base, setValue])
+  const handleRemove = useCallback(() => onRemove(index), [index, onRemove])
 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: "center" }}>
         <span>Country {index + 1}</span>
-        {canRemove && <span onClick={() => onRemove(index)}>Delete</span>}
+        {canRemove && <span onClick={handleRemove}>Delete</span>}
       </div>
 
       <ControlledSelect

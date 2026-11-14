@@ -1,9 +1,5 @@
-import { createContext, useContext, useState } from "react";
-
-export const StateContext = createContext(null)
-
-export const useStore = () => useContext(StateContext)
-
+import { useMemo, useState } from "react";
+import { StateContext } from "./StateContext";
 
 const StateProvider = ({ children }) => {
     const [kycDetails, setKycDetails] = useState({
@@ -22,8 +18,10 @@ const StateProvider = ({ children }) => {
             }
         }
     })
+    const value = useMemo(() => ({ kycDetails, setKycDetails }), [kycDetails])
+
     return (
-        <StateContext.Provider value={{ kycDetails, setKycDetails }}>
+        <StateContext.Provider value={value}>
             {children}
         </StateContext.Provider>
     )

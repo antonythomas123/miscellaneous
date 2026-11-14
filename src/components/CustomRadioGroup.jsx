@@ -1,18 +1,19 @@
+import { memo, useCallback } from 'react'
+import { useController } from 'react-hook-form'
 import CustomRadio from './CustomRadio'
-import { Controller } from 'react-hook-form'
 
-const CustomRadioGroup = ({
+const CustomRadioGroup = memo(({
     label = "",
     option1,
     option2,
     value,
     onChange,
     error,
-    disabled
+    disabled,
+    name,
 }) => {
-    const handleChange = (nextValue) => {
-        onChange?.(nextValue)
-    }
+    const handleOption1Change = useCallback(() => onChange?.(true), [onChange])
+    const handleOption2Change = useCallback(() => onChange?.(false), [onChange])
     return (
         <div>
             <label>{label}</label>
@@ -22,7 +23,8 @@ const CustomRadioGroup = ({
                         <span>{option1}</span>
                         <CustomRadio
                             isChecked={value === true}
-                            onChange={() => handleChange(true)}
+                            name={name}
+                            onChange={handleOption1Change}
                             value={"true"}
                             disabled={disabled}
                         />
@@ -32,7 +34,8 @@ const CustomRadioGroup = ({
                         <span>{option2}</span>
                         <CustomRadio
                             isChecked={value === false}
-                            onChange={() => handleChange(false)}
+                            name={name}
+                            onChange={handleOption2Change}
                             value={"false"}
                             disabled={disabled}
                         />
@@ -45,26 +48,18 @@ const CustomRadioGroup = ({
             )}
         </div>
     )
-}
+})
 
 export default CustomRadioGroup
 
 
-export const ControlledRadioGroup = ({ name, control, onChange, ...rest }) => {
-    return (
-        <Controller
-            name={name}
-            control={control}
-            render={({ field }) => (
-                <CustomRadioGroup
-                    {...rest}
-                    {...field}
-                    onChange={(e) => {
-                        field.onChange(e)
-                        onChange?.(e)
-                    }}
-                />
-            )}
-        />
-    )
-}
+export const ControlledRadioGroup = memo(({ name, control, onChange, ...rest }) => {
+    const { field } = useController({ name, control })
+    const fieldOnChange = field.onChange
+    const handleChange = useCallback((nextValue) => {
+        fieldOnChange(nextValue)
+        onChange?.(nextValue)
+    }, [fieldOnChange, onChange])
+
+    return <CustomRadioGroup {...rest} {...field} onChange={handleChange} />
+})

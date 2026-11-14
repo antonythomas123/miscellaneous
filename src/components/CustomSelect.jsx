@@ -1,10 +1,36 @@
-import { IconButton, InputAdornment, TextField } from '@mui/material';
-import { memo, useCallback, useMemo, useRef, useState } from 'react'
-import CustomDrawer from './CustomDrawer';
-import CustomSearch from './CustomSearch';
-import CountryDrawer from './CountryDrawer';
-import { Controller } from 'react-hook-form';
-import { ExpandMore } from '@mui/icons-material';
+import { IconButton, InputAdornment, TextField } from '@mui/material'
+import { lazy, memo, Suspense, useCallback, useMemo, useState } from 'react'
+import { useController } from 'react-hook-form'
+import CustomSearch from './CustomSearch'
+import { ExpandMoreIcon } from './Icons'
+
+const CustomDrawer = lazy(() => import('./CustomDrawer'))
+const CountryDrawer = lazy(() => import('./CountryDrawer'))
+
+const EMPTY_OPTIONS = []
+const NOOP = () => { }
+const OPTION_STYLE = {
+    border: '1px solid #02142E',
+    borderRadius: '8px',
+    padding: '8px',
+}
+const SELECTED_OPTION_STYLE = {
+    ...OPTION_STYLE,
+    border: '1px solid #1501FF',
+}
+
+const SelectOption = memo(({ option, selected, onSelect }) => {
+    const handleClick = useCallback(() => onSelect(option.value), [onSelect, option.value])
+
+    return (
+        <div
+            onClick={handleClick}
+            style={selected ? SELECTED_OPTION_STYLE : OPTION_STYLE}
+        >
+            {option.name}
+        </div>
+    )
+})
 
 const CustomSelect = ({
     label = "",
@@ -12,14 +38,13 @@ const CustomSelect = ({
     drawerTitle = "",
     helperText = "",
     error = "",
-    onChange = () => { },
+    onChange = NOOP,
     open = false,
     disabled = false,
     name = "",
-    options = [],
+    options = EMPTY_OPTIONS,
     endIcon = null,
     isEditMode = false,
-    launchOptions = null,
     isCountry = false,
     countryPlaceholder = "",
     countryButtonText = "",
@@ -28,91 +53,120 @@ const CustomSelect = ({
     isFullScreen = false,
     isSearchEnabled = false,
     searchText = "",
-    isAmount = false
+    isAmount = false,
 }) => {
-    const selectRef = useRef(null)
     const [isDrawerOpen, setIsDrawerOpen] = useState(open)
-    const editModeValue = useMemo(() => options?.find((x) => x?.value === value)?.name || "", [options, value]);
-    const displayValue = isMultiSelect ? options?.filter((o) => value?.includes(o?.value)).map((o) => o.name).join(", ") : editModeValue || "";
-
     const [selectedCountry, setSelectedCountry] = useState(value)
     const [search, setSearch] = useState("")
 
-    const filteredOptions = useMemo(() => (
-        options?.filter((country) => country?.name?.toLowerCase().includes(search?.toLowerCase())) ?? []
-    ), [options, search])
+    const optionNames = useMemo(
+        () => new Map(options.map((option) => [option.value, option.name])),
+        [options],
+    )
+    const displayValue = useMemo(() => {
+        if (isMultiSelect) {
+            return (Array.isArray(value) ? value : [])
+                .map((optionValue) => optionNames.get(optionValue))
+                .filter(Boolean)
+                .join(", ")
+        }
+
+        return optionNames.get(value) || ""
+    }, [isMultiSelect, optionNames, value])
+
+    const normalizedSearch = search.trim().toLowerCase()
+    const filteredOptions = useMemo(() => {
+        if (isAmount || !normalizedSearch) return options
+
+        return options.filter((option) => option.name.toLowerCase().includes(normalizedSearch))
+    }, [isAmount, normalizedSearch, options])
     const sortedOptions = useMemo(() => {
-        if (isCountry) return filteredOptions
+        if (isAmount || isCountry) return filteredOptions
 
-        return [...filteredOptions].sort((a, b) => a?.name?.localeCompare(b?.name))
-    }, [filteredOptions, isCountry])
+        return [...filteredOptions].sort((a, b) => a.name.localeCompare(b.name))
+    }, [filteredOptions, isAmount, isCountry])
 
-    const _options = isAmount ? options : sortedOptions;
+    const countryDrawer = isCountry || isFullScreen
+
+    const closeDrawer = useCallback(() => {
+        setIsDrawerOpen(false)
+        setSearch("")
+    }, [])
+
+    const openSelect = useCallback(() => {
+        if (disabled) return
+
+        setSelectedCountry(value)
+        setIsDrawerOpen(true)
+    }, [disabled, value])
 
     const handleOptionClick = useCallback((optionValue) => {
         if (!isMultiSelect) {
             onChange({ target: { name, value: optionValue } })
-            setIsDrawerOpen(false)
+            closeDrawer()
             return
         }
 
         const current = Array.isArray(value) ? value : []
-        const updated = current.includes(optionValue) ? current.filter((v) => v !== optionValue) : [...current, optionValue];
+        const updated = current.includes(optionValue)
+            ? current.filter((item) => item !== optionValue)
+            : [...current, optionValue]
         onChange({ target: { name, value: updated } })
-    }, [isMultiSelect, name, onChange, value])
+    }, [closeDrawer, isMultiSelect, name, onChange, value])
 
     const handleCountrySelect = useCallback((countryValue) => {
-        setSelectedCountry(countryValue)
-    }, [])
+        if (!isMultiSelect) {
+            setSelectedCountry(countryValue)
+            return
+        }
 
-    const countryDrawer = isCountry || isFullScreen
+        const current = Array.isArray(selectedCountry) ? selectedCountry : []
+        setSelectedCountry(current.includes(countryValue)
+            ? current.filter((item) => item !== countryValue)
+            : [...current, countryValue])
+    }, [isMultiSelect, selectedCountry])
 
-    return (
-        <>
-            {isEditMode ? (
-                <div style={{ width: "100%" }} ref={selectRef}>
-                    <TextField
-                        fullWidth
-                        label={label}
-                        disabled={disabled}
-                        name={name}
-                        helperText={error ? error : helperText}
-                        error={!!error}
-                        value={displayValue}
-                        variant="filled"
-                        slotProps={{
-                            input: {
-                                endAdornment: (
-                                    <InputAdornment position="end">
-                                        <IconButton>
-                                            <div>
-                                                {endIcon ? endIcon : <ExpandMore />}
-                                            </div>
-                                        </IconButton>
-                                    </InputAdornment>
-                                ),
-                                disableUnderline: true,
-                                readOnly: true,
-                                onClick: () => {
-                                    if (!disabled && selectRef?.current) {
-                                        setSelectedCountry(value)
-                                        setIsDrawerOpen(true)
-                                    }
-                                },
-                            },
-                        }}
-                    />
+    const handleCountryConfirm = useCallback(() => {
+        onChange({ target: { name, value: selectedCountry } })
 
-                    {!countryDrawer && isDrawerOpen && (
+        if (restrictedCountry && selectedCountry !== restrictedCountry) return
+        closeDrawer()
+    }, [closeDrawer, name, onChange, restrictedCountry, selectedCountry])
+
+    return isEditMode ? (
+        <div style={{ width: "100%" }}>
+            <TextField
+                fullWidth
+                label={label}
+                disabled={disabled}
+                name={name}
+                helperText={error || helperText}
+                error={!!error}
+                value={displayValue}
+                variant="filled"
+                slotProps={{
+                    input: {
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <IconButton onClick={openSelect} disabled={disabled}>
+                                    {endIcon || <ExpandMoreIcon />}
+                                </IconButton>
+                            </InputAdornment>
+                        ),
+                        disableUnderline: true,
+                        readOnly: true,
+                        onClick: openSelect,
+                    },
+                }}
+            />
+
+            {isDrawerOpen && (
+                <Suspense fallback={null}>
+                    {!countryDrawer && (
                         <CustomDrawer
                             title={drawerTitle}
-                            openDrawer={isDrawerOpen}
-                            onClose={() => {
-                                setIsDrawerOpen(false)
-                                setSearch("")
-                            }}
-                            launchIcons={launchOptions}
-                            height={isSearchEnabled ? "80vh" : ""}
+                            openDrawer
+                            onClose={closeDrawer}
                         >
                             <div style={{ display: "flex", flexDirection: "column", gap: '8px', padding: "16px" }}>
                                 {isSearchEnabled && (
@@ -123,70 +177,53 @@ const CustomSelect = ({
                                     />
                                 )}
 
-                                {_options?.map((option) => {
-                                    const isSelected = isMultiSelect ? value?.includes(option?.value) : value === option?.value;
-                                    return (
-                                        <div
-                                            key={option?.value}
-                                            onClick={() => handleOptionClick(option?.value)}
-                                            style={{ border: isSelected ? '1px solid #1501FF' : '1px solid #02142E', borderRadius: '8px', padding: '8px' }}
-                                        >
-                                            {option?.name}
-                                        </div>
-                                    )
-                                })}
+                                {sortedOptions.map((option) => (
+                                    <SelectOption
+                                        key={option.value}
+                                        option={option}
+                                        selected={isMultiSelect
+                                            ? Array.isArray(value) && value.includes(option.value)
+                                            : value === option.value}
+                                        onSelect={handleOptionClick}
+                                    />
+                                ))}
                             </div>
                         </CustomDrawer>
                     )}
 
-                    {countryDrawer && isDrawerOpen && (
+                    {countryDrawer && (
                         <CountryDrawer
-                            openDrawer={isDrawerOpen}
-                            onButtonClick={() => {
-                                onChange({ target: { name, value: selectedCountry } })
-                                if (restrictedCountry) {
-                                    if (selectedCountry === restrictedCountry) {
-                                        setIsDrawerOpen(false)
-                                    } else return
-                                } else {
-                                    setIsDrawerOpen(false)
-                                }
-                            }}
+                            openDrawer
+                            onButtonClick={handleCountryConfirm}
                             search={search}
                             setSearch={setSearch}
                             title={drawerTitle}
                             placeholder={countryPlaceholder || "Search"}
                             buttonText={countryButtonText || "Select"}
-                            launchOptions={launchOptions}
-                            onClose={() => {
-                                setIsDrawerOpen(false)
-                                setSearch("")
-                            }}
+                            onClose={closeDrawer}
                         >
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                {_options?.map((option) => {
-                                    const isSelected = isMultiSelect ? selectedCountry?.includes(option?.value) : selectedCountry === option?.value;
-                                    return (
-                                        <div
-                                            key={option?.value}
-                                            onClick={() => handleCountrySelect(option?.value)}
-                                            style={{ border: isSelected ? '1px solid #1501FF' : '1px solid #02142E', borderRadius: '8px', padding: '8px' }}
-                                        >
-                                            {option?.name}
-                                        </div>
-                                    )
-                                })}
+                                {sortedOptions.map((option) => (
+                                    <SelectOption
+                                        key={option.value}
+                                        option={option}
+                                        selected={isMultiSelect
+                                            ? Array.isArray(selectedCountry) && selectedCountry.includes(option.value)
+                                            : selectedCountry === option.value}
+                                        onSelect={handleCountrySelect}
+                                    />
+                                ))}
                             </div>
                         </CountryDrawer>
                     )}
-                </div>
-            ) : (
-                <div>
-                    <span>{label}</span>
-                    <span>{displayValue || ""}</span>
-                </div>
+                </Suspense>
             )}
-        </>
+        </div>
+    ) : (
+        <div>
+            <span>{label}</span>
+            <span>{displayValue}</span>
+        </div>
     )
 }
 
@@ -194,27 +231,20 @@ const MemoizedCustomSelect = memo(CustomSelect)
 
 export default MemoizedCustomSelect
 
+export const ControlledSelect = memo(({ name, control, onChange, ...rest }) => {
+    const { field } = useController({ name, control })
+    const fieldOnChange = field.onChange
+    const handleChange = useCallback((event) => {
+        const nextValue = event.target.value
+        fieldOnChange(nextValue)
+        onChange?.(nextValue)
+    }, [fieldOnChange, onChange])
 
-export const ControlledSelect = ({
-    name, control, onChange, ...rest
-}) => {
     return (
-        <Controller
-            name={name}
-            control={control}
-            render={({ field }) => (
-                <MemoizedCustomSelect
-                    {...rest}
-                    {...field}
-                    onChange={onChange
-                        ? (e) => {
-                            field.onChange(e.target.value)
-                            onChange(e.target.value)
-                        }
-                        : field.onChange}
-                />
-
-            )}
+        <MemoizedCustomSelect
+            {...rest}
+            {...field}
+            onChange={onChange ? handleChange : field.onChange}
         />
     )
-}
+})

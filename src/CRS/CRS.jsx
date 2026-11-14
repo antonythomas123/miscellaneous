@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useMemo, useState } from 'react'
 import { useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { TransitionGroup } from 'react-transition-group'
 import ResidencyRow from './components/ResidencyRow'
@@ -7,9 +7,10 @@ import { Button, Collapse } from '@mui/material'
 import countriesData from '../data/countries.json'
 import { HIGH_RISK_COUNTRIES } from '../constants/constants'
 import { createCrsSchema, yupFormResolver } from './validationSchema'
-import CustomModal from '../components/CustomModal'
+const CustomModal = lazy(() => import('../components/CustomModal'))
 
 const EMPTY_LOCALES = {}
+const EMPTY_VALUES = []
 const MAX_COUNTRIES = 5
 const HOLD_RESIDENCE_COUNTRY_FIELD = 'highRiskCountryDetails.holdResidenceInOtherJurisdictionCountry'
 
@@ -82,21 +83,34 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
     const [pendingCountryCode, setPendingCountryCode] = useState(null)
     const [showMaxCountriesMessage, setShowMaxCountriesMessage] = useState(false)
 
-    const countryOfTaxResidence = useWatch({ control, name: 'countryOfTaxResidence' }) || []
-    const taxResidenceCodeKey = countryOfTaxResidence
-        .map((field) => field?.countryOfTaxResidenceCode)
-        .filter(Boolean)
-        .join('|')
+    // Watch only the values that affect the surrounding CRS form. Watching the
+    // entire array makes every TIN keystroke re-render the form shell.
+    const countryCodeNames = useMemo(
+        () => fields.map((_, index) => `countryOfTaxResidence.${index}.countryOfTaxResidenceCode`),
+        [fields],
+    )
+    const residenceRightsNames = useMemo(
+        () => fields.map((_, index) => (
+            `countryOfTaxResidence.${index}.obtainResidenceRightsUnderCitizenshipByInvestmentScheme`
+        )),
+        [fields],
+    )
+    const countryCodes = useWatch({ control, name: countryCodeNames })
+    const residenceRights = useWatch({ control, name: residenceRightsNames })
+    const taxResidenceCodeKey = (countryCodes || EMPTY_VALUES).filter(Boolean).join('|')
     const taxResidenceCodes = useMemo(
         () => (taxResidenceCodeKey ? taxResidenceCodeKey.split('|') : []),
         [taxResidenceCodeKey],
     )
-    const highRiskCountryCount = countryOfTaxResidence.filter((field) => (
-        HIGH_RISK_COUNTRIES.includes(field?.countryOfTaxResidenceCode)
-    )).length
-    const hasHighRiskCountryWithResidenceRights = countryOfTaxResidence.some(
-        (field) => HIGH_RISK_COUNTRIES.includes(field?.countryOfTaxResidenceCode) &&
-            field.obtainResidenceRightsUnderCitizenshipByInvestmentScheme === true
+    const highRiskCountryCount = useMemo(
+        () => (countryCodes || EMPTY_VALUES).filter((code) => HIGH_RISK_COUNTRIES.includes(code)).length,
+        [countryCodes],
+    )
+    const hasHighRiskCountryWithResidenceRights = useMemo(
+        () => (countryCodes || EMPTY_VALUES).some((code, index) => (
+            HIGH_RISK_COUNTRIES.includes(code) && (residenceRights || EMPTY_VALUES)[index] === true
+        )),
+        [countryCodes, residenceRights],
     )
 
     const appendCountryToTaxResidence = useCallback((countryCode, sourceFieldName) => {
@@ -144,9 +158,31 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
         append(createCountryResidence())
     }, [append, fields.length])
 
-    const onSubmit = () => {
-        console.log("submitting.....")
-    }
+    const countryNames = useMemo(
+        () => new Map(countries.map((country) => [country.value, country.name])),
+        [countries],
+    )
+    const residencyRows = useMemo(() => fields.map((item, index) => (
+        <Collapse
+            key={item.id}
+            timeout={350}
+            mountOnEnter
+            unmountOnExit
+        >
+            <ResidencyRow
+                index={index}
+                control={control}
+                setValue={setValue}
+                rowErrors={errors?.countryOfTaxResidence?.[index]}
+                canRemove={fields.length > 1}
+                onRemove={remove}
+                countries={countries}
+                selectedCountryCodes={taxResidenceCodes}
+            />
+        </Collapse>
+    )), [control, countries, errors, fields, remove, setValue, taxResidenceCodes])
+
+    const onSubmit = useCallback(() => {}, [])
 
     return (
         <div
@@ -168,25 +204,7 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
             >
                 <div style={{ display: "flex", flexDirection: 'column', gap: '24px' }}>
                     <TransitionGroup component={null}>
-                        {fields.map((item, index) => (
-                            <Collapse
-                                key={item.id}
-                                timeout={350}
-                                mountOnEnter
-                                unmountOnExit
-                            >
-                                <ResidencyRow
-                                    index={index}
-                                    control={control}
-                                    setValue={setValue}
-                                    rowErrors={errors?.countryOfTaxResidence?.[index]}
-                                    canRemove={fields.length > 1}
-                                    onRemove={remove}
-                                    countries={countries}
-                                    selectedCountryCodes={taxResidenceCodes}
-                                />
-                            </Collapse>
-                        ))}
+                        {residencyRows}
                     </TransitionGroup>
                 </div>
 
@@ -242,15 +260,19 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
                 </Button>
             </div>
 
-            <CustomModal
-                open={openAddCountryModal}
-                onClose={clearPendingCountry}
-                content={`Do you want to add ${countries.find((country) => country.value === pendingCountryCode)?.name || pendingCountryCode || 'this'} Country as Country of Tax Residence ?`}
-                cancelButtonText="No"
-                actionButtonText="Yes"
-                onCancelClick={clearPendingCountry}
-                onActionClick={addPendingCountry}
-            />
+            {openAddCountryModal && (
+                <Suspense fallback={null}>
+                    <CustomModal
+                        open
+                        onClose={clearPendingCountry}
+                        content={`Do you want to add ${countryNames.get(pendingCountryCode) || pendingCountryCode || 'this'} Country as Country of Tax Residence ?`}
+                        cancelButtonText="No"
+                        actionButtonText="Yes"
+                        onCancelClick={clearPendingCountry}
+                        onActionClick={addPendingCountry}
+                    />
+                </Suspense>
+            )}
         </div>
     )
 }

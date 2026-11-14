@@ -1,10 +1,13 @@
+import { memo, useCallback, useMemo } from 'react'
 import { TextField } from '@mui/material'
-import { Controller } from 'react-hook-form'
+import { useController } from 'react-hook-form'
 
-const CustomTextField = ({
+const NOOP = () => { }
+
+const CustomTextField = memo(({
     label = "",
     value = "",
-    onChange = () => { },
+    onChange = NOOP,
     name = "",
     disabled = false,
     type = "",
@@ -12,66 +15,63 @@ const CustomTextField = ({
     maxLength,
     error = "",
     placeholder = "",
-    onBLur = () => { },
+    onBLur = NOOP,
+    onBlur = onBLur,
     endAdornment = null,
     inputMode = "",
     isEditMode = false,
 }) => {
-    return (
-        <>
-            {isEditMode ? (
-                <TextField
-                    label={label}
-                    value={value ?? ""}
-                    onChange={onChange}
-                    name={name}
-                    disabled={disabled}
-                    type={type}
-                    fullWidth
-                    variant="filled"
-                    onBlur={onBLur}
-                    error={!!error}
-                    helperText={error ? error : helperText}
-                    placeholder={placeholder}
-                    slotProps={{
-                        input: {
-                            endAdornment: endAdornment,
-                            readOnly: false,
-                            disableUnderline: true,
-                        },
-                        htmlInput: {
-                            maxLength: maxLength,
-                            inputMode: inputMode,
-                        },
-                    }}
-                />
-            ) : (
-                <div>
-                    <span>{label}</span>
-                    <span>{value ?? ""}</span>
-                </div>
-            )}
-        </>
+    const slotProps = useMemo(() => ({
+        input: {
+            endAdornment,
+            readOnly: false,
+            disableUnderline: true,
+        },
+        htmlInput: {
+            maxLength,
+            inputMode,
+        },
+    }), [endAdornment, inputMode, maxLength])
+
+    return isEditMode ? (
+        <TextField
+            label={label}
+            value={value ?? ""}
+            onChange={onChange}
+            name={name}
+            disabled={disabled}
+            type={type}
+            fullWidth
+            variant="filled"
+            onBlur={onBlur}
+            error={!!error}
+            helperText={error || helperText}
+            placeholder={placeholder}
+            slotProps={slotProps}
+        />
+    ) : (
+        <div>
+            <span>{label}</span>
+            <span>{value ?? ""}</span>
+        </div>
     )
-}
+})
 
 export default CustomTextField
 
-export const ControlledTextField = ({ name, control, onChange, ...rest }) => {
+export const ControlledTextField = memo(({ name, control, onChange, ...rest }) => {
+    const { field } = useController({ name, control })
+    const fieldOnChange = field.onChange
+    const handleChange = useCallback((event) => {
+        fieldOnChange(event)
+        onChange?.(event)
+    }, [fieldOnChange, onChange])
+
     return (
-        <Controller
-            name={name}
-            control={control}
-            render={({ field }) => (
-                <CustomTextField
-                    {...rest}
-                    {...field}
-                    onChange={(e) => {
-                        field.onChange(e)
-                        onChange?.(e)
-                    }}
-                />
-            )}
+        <CustomTextField
+            {...rest}
+            {...field}
+            onChange={handleChange}
         />
     )
-}
+})

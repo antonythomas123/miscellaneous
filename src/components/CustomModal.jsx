@@ -1,7 +1,7 @@
 import { Button, Dialog, DialogActions, DialogContent } from '@mui/material'
-import React from 'react'
+import { memo } from 'react'
 
-const CustomModal = ({
+const CustomModal = memo(({
     open,
     onClose,
     title,
@@ -35,6 +35,6 @@ const CustomModal = ({
             </DialogActions>
         </Dialog>
     )
-}
+})
 
 export default CustomModal
