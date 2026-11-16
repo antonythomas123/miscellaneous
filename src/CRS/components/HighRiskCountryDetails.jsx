@@ -5,7 +5,9 @@ import { ControlledSelect } from '../../components/CustomSelect'
 import { Collapse } from '@mui/material'
 import reasonableExplanations from '../../data/reasonableExplanations.json'
 
-const HighRiskCountryDetails = ({ control, detailsErrors = {}, countries, taxResidenceCodes, showOtherJurisdictionQuestion, onCountryAdded, onCountrySelected }) => {
+const HOLD_RESIDENCE_COUNTRY_FIELD = 'highRiskCountryDetails.holdResidenceInOtherJurisdictionCountry'
+
+const HighRiskCountryDetails = ({ control, detailsErrors = {}, countries, taxResidenceCodes, showOtherJurisdictionQuestion, onCountryAdded }) => {
   const holdResidenceInOtherJurisdiction = useWatch({
     control,
     name: 'highRiskCountryDetails.holdResidenceInOtherJurisdiction',
@@ -39,7 +41,7 @@ const HighRiskCountryDetails = ({ control, detailsErrors = {}, countries, taxRes
   const countryName = (countryCode) => countryNames.get(countryCode) || countryCode
 
   const handleHoldResidenceCountryChange = (countryCode) => {
-    onCountrySelected(countryCode)
+    onCountryAdded(countryCode, HOLD_RESIDENCE_COUNTRY_FIELD)
   }
 
   const handleSpentNinetyDaysAddChange = (answer) => {
