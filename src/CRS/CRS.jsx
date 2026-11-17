@@ -4,12 +4,36 @@ import { TransitionGroup } from 'react-transition-group'
 import ResidencyRow from './components/ResidencyRow'
 import HighRiskCountryDetails from './components/HighRiskCountryDetails'
 import { Button, Collapse } from '@mui/material'
+import CustomModal from '../components/CustomModal'
+import { ControlledSelect } from '../components/CustomSelect'
+import reasonableExplanations from '../data/reasonableExplanations.json'
 import countriesData from '../data/countries.json'
 import { HIGH_RISK_COUNTRIES } from '../constants/constants'
 import { createCrsSchema, yupFormResolver } from './validationSchema'
+import { useStore } from '../providers/StateProvider'
 
 const EMPTY_LOCALES = {}
 const MAX_COUNTRIES = 5
+
+const CRS_INDICIA_SOURCES = [
+    {
+        key: 'personalDetailsCountryOfResidency',
+        path: ['personalInformation', 'personalDetails', 'countryOfResidency'],
+        label: 'Country of Residency in Personal details section',
+    },
+    {
+        key: 'residentialAddressCountry',
+        path: ['residenceDetails', 'residenceAddress', 'country'],
+        label: 'Country in Residential Address',
+    },
+    {
+        key: 'employmentCountry',
+        path: ['employmentDetails', 'country'],
+        label: 'Country in Employment details',
+    },
+]
+
+const getNestedValue = (object, path) => path.reduce((value, key) => value?.[key], object)
 
 const initialCountryResidence = {
     countryOfTaxResidenceCode: '',
@@ -29,6 +53,7 @@ const createCountryResidence = (countryCode = '') => ({
 
 
 const CRS = ({ locales = EMPTY_LOCALES }) => {
+    const { kycDetails } = useStore() || {}
     const crsSchema = useMemo(() => createCrsSchema(locales), [locales])
     const resolver = useMemo(() => yupFormResolver(crsSchema), [crsSchema])
     const defaultValues = useMemo(() => ({
@@ -77,6 +102,12 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
     const countries = countriesData
 
     const [showMaxCountriesMessage, setShowMaxCountriesMessage] = useState(false)
+    const [indiciaQuestionQueue, setIndiciaQuestionQueue] = useState([])
+    const [activeIndiciaQuestion, setActiveIndiciaQuestion] = useState(null)
+    const [indiciaDecisions, setIndiciaDecisions] = useState({})
+    const [indiciaExplanationRequirements, setIndiciaExplanationRequirements] = useState([])
+    const [indiciaExplanations, setIndiciaExplanations] = useState({})
+    const [indiciaExplanationErrors, setIndiciaExplanationErrors] = useState({})
 
     const countryOfTaxResidence = useWatch({ control, name: 'countryOfTaxResidence' }) || []
     const taxResidenceCodeKey = countryOfTaxResidence
@@ -94,6 +125,30 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
         (field) => HIGH_RISK_COUNTRIES.includes(field?.countryOfTaxResidenceCode) &&
             field.obtainResidenceRightsUnderCitizenshipByInvestmentScheme === true
     )
+
+    const countryNames = useMemo(
+        () => new Map(countries.map((country) => [country.value, country.name])),
+        [countries],
+    )
+
+    const getMissingIndiciaCountries = useCallback((values) => {
+        const selectedCodes = (values?.countryOfTaxResidence || [])
+            .map((country) => country?.countryOfTaxResidenceCode)
+            .filter(Boolean)
+        const missingCountries = []
+
+        CRS_INDICIA_SOURCES.forEach((source) => {
+            const countryCode = getNestedValue(kycDetails, source.path)
+            if (!countryCode || selectedCodes.includes(countryCode)) return
+
+            missingCountries.push({
+                countryCode,
+                sourceLabel: source.label,
+            })
+        })
+
+        return missingCountries
+    }, [kycDetails])
 
     const appendCountryToTaxResidence = useCallback((countryCode, sourceFieldName) => {
         if (!countryCode || taxResidenceCodes.includes(countryCode)) return
@@ -116,8 +171,83 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
         append(createCountryResidence())
     }, [append, fields.length])
 
-    const onSubmit = () => {
+    const onSubmit = (values) => {
+        const missingIndiciaCountries = getMissingIndiciaCountries(values)
+        const unansweredIndiciaCountries = missingIndiciaCountries.filter(
+            ({ countryCode }) => indiciaDecisions[countryCode] === undefined,
+        )
+
+        if (unansweredIndiciaCountries.length) {
+            setIndiciaQuestionQueue(unansweredIndiciaCountries)
+            setActiveIndiciaQuestion(unansweredIndiciaCountries[0])
+            return
+        }
+
+        const missingExplanations = indiciaExplanationRequirements.reduce((errorsForCountries, requirement) => {
+            if (!indiciaExplanations[requirement.countryCode]) {
+                errorsForCountries[requirement.countryCode] = 'Please select a reasonable explanation.'
+            }
+            return errorsForCountries
+        }, {})
+
+        if (Object.keys(missingExplanations).length) {
+            setIndiciaExplanationErrors(missingExplanations)
+            return
+        }
+
         console.log("submitting.....")
+    }
+
+    const handleIndiciaAnswer = (answer) => {
+        if (!activeIndiciaQuestion) return
+
+        if (answer === true && fields.length >= MAX_COUNTRIES) {
+            setShowMaxCountriesMessage(true)
+            const remainingQuestions = indiciaQuestionQueue
+                .slice(1)
+                .filter(({ countryCode }) => countryCode !== activeIndiciaQuestion.countryCode)
+            setIndiciaQuestionQueue(remainingQuestions)
+            setActiveIndiciaQuestion(remainingQuestions[0] || null)
+            return
+        }
+
+        const { countryCode } = activeIndiciaQuestion
+        setIndiciaDecisions((currentDecisions) => ({
+            ...currentDecisions,
+            [countryCode]: answer,
+        }))
+
+        if (answer === true) {
+            appendCountryToTaxResidence(countryCode)
+        }
+
+        if (answer === false) {
+            setIndiciaExplanationRequirements((currentRequirements) => (
+                currentRequirements.some((requirement) => requirement.countryCode === countryCode)
+                    ? currentRequirements
+                    : [...currentRequirements, activeIndiciaQuestion]
+            ))
+        }
+
+        const remainingQuestions = indiciaQuestionQueue
+            .slice(1)
+            .filter(({ countryCode: queuedCountryCode }) => queuedCountryCode !== countryCode)
+        setIndiciaQuestionQueue(remainingQuestions)
+        setActiveIndiciaQuestion(remainingQuestions[0] || null)
+    }
+
+    const handleIndiciaExplanationChange = (countryCode, value) => {
+        setIndiciaExplanations((currentExplanations) => ({
+            ...currentExplanations,
+            [countryCode]: value,
+        }))
+        setIndiciaExplanationErrors((currentErrors) => {
+            if (!currentErrors[countryCode]) return currentErrors
+
+            const nextErrors = { ...currentErrors }
+            delete nextErrors[countryCode]
+            return nextErrors
+        })
     }
 
     return (
@@ -161,6 +291,23 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
                         ))}
                     </TransitionGroup>
                 </div>
+
+                {indiciaExplanationRequirements.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '24px' }}>
+                        {indiciaExplanationRequirements.map((requirement) => (
+                            <ControlledSelect
+                                key={requirement.countryCode}
+                                name={`indiciaReasonCode.${requirement.countryCode}`}
+                                control={control}
+                                options={reasonableExplanations}
+                                label={`Reasonable Explanation related to the country(ies) of Tax Residence (${countryNames.get(requirement.countryCode) || requirement.countryCode})`}
+                                error={indiciaExplanationErrors[requirement.countryCode]}
+                                isEditMode={true}
+                                onChange={(value) => handleIndiciaExplanationChange(requirement.countryCode, value)}
+                            />
+                        ))}
+                    </div>
+                )}
 
                 {fields?.length < MAX_COUNTRIES && (
                     <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
@@ -212,6 +359,19 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
                     Review CRS Self certification form
                 </Button>
             </div>
+
+            <CustomModal
+                open={!!activeIndiciaQuestion}
+                onClose={() => {}}
+                title="CRS Indicia"
+                content={activeIndiciaQuestion
+                    ? `Do you want to add ${countryNames.get(activeIndiciaQuestion.countryCode) || activeIndiciaQuestion.countryCode} completed in the ${activeIndiciaQuestion.sourceLabel} as country of tax residence?`
+                    : ''}
+                cancelButtonText="No"
+                actionButtonText="Yes"
+                onCancelClick={() => handleIndiciaAnswer(false)}
+                onActionClick={() => handleIndiciaAnswer(true)}
+            />
 
         </div>
     )
