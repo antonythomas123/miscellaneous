@@ -14,11 +14,11 @@ const StateProvider = ({ children }) => {
             }
         },
         employmentDetails: {
-            country: "AE"
+            country: "IN"
         },
         residenceDetails: {
             residenceAddress: {
-                country: "AE"
+                country: "SL"
             }
         }
     })
