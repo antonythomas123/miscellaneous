@@ -14,11 +14,14 @@ const StateProvider = ({ children }) => {
             }
         },
         employmentDetails: {
-            country: "IN"
+            country: "IN",
+            workTelephoneCode: "971"
         },
         residenceDetails: {
             residenceAddress: {
-                country: "SL"
+                country: "SL",
+                mobileCode1: "971",
+                mobileCode2: "971"
             }
         }
     })

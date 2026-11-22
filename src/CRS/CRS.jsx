@@ -222,19 +222,19 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [indiciaAnswers, indiciaQuestions])
 
+    const scrollToIndiciaSection = () => {
+        requestAnimationFrame(() => indiciaSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+    }
+
     const onSubmit = (values) => {
         const missingIndiciaCountries = getMissingIndiciaCountries(values).filter(
             (country, position, list) => list.findIndex((item) => item.countryCode === country.countryCode) === position,
         )
-        setIndiciaQuestions((currentQuestions) => [
-            ...currentQuestions,
-            ...missingIndiciaCountries.filter(
-                ({ countryCode }) => !currentQuestions.some((question) => question.countryCode === countryCode),
-            ),
-        ])
+        const isAlreadyAsked = (countryCode) => indiciaQuestions.some((question) => question.countryCode === countryCode)
 
+        // 1. Questions already shown must be resolved before moving on
         const nextErrors = {}
-        missingIndiciaCountries.forEach(({ countryCode }) => {
+        missingIndiciaCountries.filter(({ countryCode }) => isAlreadyAsked(countryCode)).forEach(({ countryCode }) => {
             const answer = values?.indiciaAddCountry?.[countryCode]
             if (answer === true) {
                 nextErrors[countryCode] = { answer: 'Please add this country to the countries of tax residence, or select No.' }
@@ -247,7 +247,15 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
         setIndiciaErrors(nextErrors)
 
         if (Object.keys(nextErrors).length) {
-            requestAnimationFrame(() => indiciaSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+            scrollToIndiciaSection()
+            return
+        }
+
+        // 2. Ask only one new indicia question per review click
+        const nextQuestion = missingIndiciaCountries.find(({ countryCode }) => !isAlreadyAsked(countryCode))
+        if (nextQuestion) {
+            setIndiciaQuestions((currentQuestions) => [...currentQuestions, nextQuestion])
+            scrollToIndiciaSection()
             return
         }
 
