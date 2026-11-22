@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react'
-import { useWatch } from 'react-hook-form'
+import { useFormState, useWatch } from 'react-hook-form'
 import { Collapse } from '@mui/material'
 import { ControlledSelect } from '../../components/CustomSelect'
 import { ControlledTextField } from '../../components/CustomTextField'
@@ -8,8 +8,10 @@ import { ControlledRadioGroup } from '../../components/CustomRadioGroup'
 import reasonForNotFillingData from '../../data/reasonsForNotFilling.json'
 import { HIGH_RISK_COUNTRIES } from '../../constants/constants'
 
-const ResidencyRow = ({ index, control, setValue, rowErrors, canRemove, onRemove, countries, selectedCountryCodes }) => {
+const ResidencyRow = ({ index, control, setValue, trigger, canRemove, onRemove, countries, selectedCountryCodes }) => {
   const base = `countryOfTaxResidence.${index}`
+  const { errors } = useFormState({ control, name: base })
+  const rowErrors = errors?.countryOfTaxResidence?.[index]
 
   const notApplicabeTIN = useWatch({ control, name: `${base}.notApplicableTIN` })
   const reason = useWatch({ control, name: `${base}.reasonForNotFillingTINNumber` })
@@ -30,6 +32,7 @@ const ResidencyRow = ({ index, control, setValue, rowErrors, canRemove, onRemove
     if (isNotApplicable) {
       setValue(`${base}.taxIdentificationNumber`, '')
     }
+    trigger(`${base}.taxIdentificationNumber`)
   }
 
 
@@ -48,6 +51,7 @@ const ResidencyRow = ({ index, control, setValue, rowErrors, canRemove, onRemove
         error={rowErrors?.countryOfTaxResidenceCode?.message}
         isCountry={true}
         isEditMode={true}
+        onChange={() => trigger(`${base}.taxIdentificationNumber`)}
       />
 
       <ControlledTextField

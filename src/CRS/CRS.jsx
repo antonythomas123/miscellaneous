@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useFieldArray, useForm, useWatch } from 'react-hook-form'
+import { yupResolver } from '@hookform/resolvers/yup'
 import { TransitionGroup } from 'react-transition-group'
 import ResidencyRow from './components/ResidencyRow'
 import HighRiskCountryDetails from './components/HighRiskCountryDetails'
@@ -10,7 +11,7 @@ import reasonableExplanations from '../data/reasonableExplanations.json'
 import countriesData from '../data/countries.json'
 import { HIGH_RISK_COUNTRIES } from '../constants/constants'
 import { PHONE_CODE_TO_COUNTRY_CODE } from '../data/phoneCodes'
-import { createCrsSchema, yupFormResolver } from './validationSchema'
+import { createCrsSchema } from './validationSchema'
 import { useStore } from '../providers/StateProvider'
 
 const EMPTY_LOCALES = {}
@@ -66,7 +67,7 @@ const createCountryResidence = (countryCode = '') => ({
 const CRS = ({ locales = EMPTY_LOCALES }) => {
     const { kycDetails } = useStore() || {}
     const crsSchema = useMemo(() => createCrsSchema(locales), [locales])
-    const resolver = useMemo(() => yupFormResolver(crsSchema), [crsSchema])
+    const resolver = useMemo(() => yupResolver(crsSchema), [crsSchema])
     const defaultValues = useMemo(() => ({
         countryOfTaxResidence: [createCountryResidence()],
         highRiskCountryDetails: {
@@ -97,7 +98,7 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
         indiciaCheck: null,
     }), [])
 
-    const { control, handleSubmit, setValue, formState: { errors } } = useForm({
+    const { control, handleSubmit, setValue, trigger, formState: { errors } } = useForm({
         defaultValues,
         shouldUnregister: true,
         mode: "onChange",
@@ -319,7 +320,7 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
                                     index={index}
                                     control={control}
                                     setValue={setValue}
-                                    rowErrors={errors?.countryOfTaxResidence?.[index]}
+                                    trigger={trigger}
                                     canRemove={fields.length > 1}
                                     onRemove={remove}
                                     countries={countries}
