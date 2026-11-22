@@ -27,7 +27,7 @@ export const createCrsSchema = (locales = {}) => {
   const optionalBoolean = () => yup.boolean().nullable().notRequired()
 
   const countryOfTaxResidenceSchema = yup.object({
-    countryOfTaxResidenceCode: yup.string().required(messages.countryOfTaxResidence),
+    countryOfTaxResidenceCode: yup.string().required("Field cannot be empty"),
     notApplicableTIN: optionalBoolean(),
     taxIdentificationNumber: optionalString().when('notApplicableTIN', {
       is: (notApplicableTIN) => notApplicableTIN !== true,

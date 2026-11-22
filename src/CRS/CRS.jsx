@@ -100,7 +100,7 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
     const { control, handleSubmit, setValue, formState: { errors } } = useForm({
         defaultValues,
         shouldUnregister: true,
-        mode: "onSubmit",
+        mode: "onChange",
         reValidateMode: "onChange",
         resolver,
     })
