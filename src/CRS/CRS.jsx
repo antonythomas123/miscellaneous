@@ -9,6 +9,7 @@ import { ControlledSelect } from '../components/CustomSelect'
 import reasonableExplanations from '../data/reasonableExplanations.json'
 import countriesData from '../data/countries.json'
 import { HIGH_RISK_COUNTRIES } from '../constants/constants'
+import { PHONE_CODE_TO_COUNTRY_CODE } from '../constants/phoneCodeCountries'
 import { createCrsSchema, yupFormResolver } from './validationSchema'
 import { useStore } from '../providers/StateProvider'
 
@@ -32,6 +33,16 @@ const CRS_INDICIA_SOURCES = [
         label: 'Country in Employment details',
     },
 ]
+
+// Telephone indicia: raised when a telephone code is completed, none of them is UAE, and the country is not yet a tax residence
+const PHONE_INDICIA_SOURCES = [
+    ['residenceDetails', 'residenceAddress', 'mobileCode1'],
+    ['residenceDetails', 'residenceAddress', 'mobileCode2'],
+    ['employmentDetails', 'workTelephoneCode'],
+]
+const PHONE_INDICIA_LABEL = 'Telephone numbers'
+const UAE_PHONE_CODE = '971'
+const normalizePhoneCode = (code) => String(code ?? '').replace(/\D/g, '')
 
 const getNestedValue = (object, path) => path.reduce((value, key) => value?.[key], object)
 
@@ -156,6 +167,21 @@ const CRS = ({ locales = EMPTY_LOCALES }) => {
                 sourceLabel: source.label,
             })
         })
+
+        const phoneCodes = PHONE_INDICIA_SOURCES
+            .map((path) => normalizePhoneCode(getNestedValue(kycDetails, path)))
+            .filter(Boolean)
+        if (phoneCodes.length && !phoneCodes.includes(UAE_PHONE_CODE)) {
+            phoneCodes.forEach((phoneCode) => {
+                const countryCode = PHONE_CODE_TO_COUNTRY_CODE[phoneCode]
+                if (!countryCode || selectedCodes.includes(countryCode)) return
+
+                missingCountries.push({
+                    countryCode,
+                    sourceLabel: PHONE_INDICIA_LABEL,
+                })
+            })
+        }
 
         return missingCountries
     }, [kycDetails])
