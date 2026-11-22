@@ -1,17 +1,6 @@
 import * as yup from 'yup'
 import { HIGH_RISK_COUNTRIES } from '../constants/constants.js'
 
-const defaultMessages = {
-  countryOfTaxResidence: 'Please select a country of tax residence.',
-  taxIdentificationNumber: 'Please enter your tax identification number or mark it as not applicable.',
-  reasonForNotFillingTINNumber: 'Please select a reason for not filling the TIN number.',
-  explanationForReasonB: 'Please provide an explanation for reason B.',
-  yesOrNo: 'Please select Yes or No.',
-  specifyCountry: 'Please specify the country.',
-  reasonableExplanation: 'Please select a reasonable explanation.',
-  atLeastOneCountry: 'Please add at least one country of tax residence.',
-}
-
 const getValidationContext = (values) => {
   const countryOfTaxResidence = Array.isArray(values?.countryOfTaxResidence)
     ? values.countryOfTaxResidence
@@ -34,7 +23,6 @@ const getValidationContext = (values) => {
 }
 
 export const createCrsSchema = (locales = {}) => {
-  const messages = { ...defaultMessages, ...(locales?.validation || locales) }
   const optionalString = () => yup.string().nullable().notRequired()
   const optionalBoolean = () => yup.boolean().nullable().notRequired()
 
@@ -43,21 +31,21 @@ export const createCrsSchema = (locales = {}) => {
     notApplicableTIN: optionalBoolean(),
     taxIdentificationNumber: optionalString().when('notApplicableTIN', {
       is: (notApplicableTIN) => notApplicableTIN !== true,
-      then: (schema) => schema.required(messages.taxIdentificationNumber),
+      then: (schema) => schema.required("Field cannot be empty"),
     }),
     explanationForReasonB: optionalString().when('reasonForNotFillingTINNumber', {
       is: 'B',
-      then: (schema) => schema.required(messages.explanationForReasonB),
+      then: (schema) => schema.required("Field cannot be empty"),
     }),
     reasonForNotFillingTINNumber: optionalString().when('notApplicableTIN', {
       is: true,
-      then: (schema) => schema.required(messages.reasonForNotFillingTINNumber),
+      then: (schema) => schema.required("Field cannot be empty"),
     }),
     obtainResidenceRightsUnderCitizenshipByInvestmentScheme: optionalBoolean().when(
       'countryOfTaxResidenceCode',
       {
         is: (countryCode) => HIGH_RISK_COUNTRIES.includes(countryCode),
-        then: (schema) => schema.required(messages.yesOrNo),
+        then: (schema) => schema.required("Field cannot be empty"),
       },
     ),
   })
@@ -67,7 +55,7 @@ export const createCrsSchema = (locales = {}) => {
       ['$hasHighRiskCountryWithResidenceRights', '$highRiskCountryCount'],
       ([hasHighRiskCountry, highRiskCountryCount], schema) => (
         hasHighRiskCountry && highRiskCountryCount < 2
-          ? schema.required(messages.yesOrNo)
+          ? schema.required("Field cannot be empty")
           : schema
       ),
     ),
@@ -79,7 +67,7 @@ export const createCrsSchema = (locales = {}) => {
       ],
       ([hasHighRiskCountry, highRiskCountryCount, holdsResidence], schema) => (
         hasHighRiskCountry && highRiskCountryCount < 2 && holdsResidence === true
-          ? schema.required(messages.specifyCountry)
+          ? schema.required("Field cannot be empty")
           : schema
       ),
     ),
@@ -87,14 +75,14 @@ export const createCrsSchema = (locales = {}) => {
       '$hasHighRiskCountryWithResidenceRights',
       {
         is: true,
-        then: (schema) => schema.required(messages.yesOrNo),
+        then: (schema) => schema.required("Field cannot be empty"),
       },
     ),
     spentNinetyDaysInOtherJurisdictionCountryPreviousYearCountry: optionalString().when(
       ['$hasHighRiskCountryWithResidenceRights', 'spentNinetyDaysInOtherJurisdictionCountryPreviousYear'],
       ([hasHighRiskCountry, spentNinetyDays], schema) => (
         hasHighRiskCountry && spentNinetyDays === true
-          ? schema.required(messages.specifyCountry)
+          ? schema.required("Field cannot be empty")
           : schema
       ),
     ),
@@ -102,7 +90,7 @@ export const createCrsSchema = (locales = {}) => {
       '$hasHighRiskCountryWithResidenceRights',
       {
         is: true,
-        then: (schema) => schema.required(messages.specifyCountry),
+        then: (schema) => schema.required("Field cannot be empty"),
       },
     ),
     countryOfTaxResidencePersonalIncomeTax: optionalBoolean().when(
@@ -115,7 +103,7 @@ export const createCrsSchema = (locales = {}) => {
         hasHighRiskCountry &&
         countryCode &&
         !taxResidenceCodes.includes(countryCode)
-          ? schema.required(messages.yesOrNo)
+          ? schema.required("Field cannot be empty")
           : schema
       ),
     ),
@@ -131,7 +119,7 @@ export const createCrsSchema = (locales = {}) => {
         spentNinetyDays === true &&
         countryCode &&
         !taxResidenceCodes.includes(countryCode)
-          ? schema.required(messages.yesOrNo)
+          ? schema.required("Field cannot be empty")
           : schema
       ),
     ),
@@ -147,7 +135,7 @@ export const createCrsSchema = (locales = {}) => {
         addCountry === false &&
         countryCode &&
         !taxResidenceCodes.includes(countryCode)
-          ? schema.required(messages.reasonableExplanation)
+          ? schema.required("Field cannot be empty")
           : schema
       ),
     ),
@@ -163,7 +151,7 @@ export const createCrsSchema = (locales = {}) => {
         addCountry === false &&
         countryCode &&
         !taxResidenceCodes.includes(countryCode)
-          ? schema.required(messages.reasonableExplanation)
+          ? schema.required("Field cannot be empty")
           : schema
       ),
     ),
@@ -171,8 +159,8 @@ export const createCrsSchema = (locales = {}) => {
 
   return yup.object({
     countryOfTaxResidence: yup.array()
-      .required(messages.atLeastOneCountry)
-      .min(1, messages.atLeastOneCountry)
+      .required("Field cannot be empty")
+      .min(1, "Field cannot be empty")
       .of(countryOfTaxResidenceSchema),
     highRiskCountryDetails: highRiskCountryDetailsSchema.required(),
   })

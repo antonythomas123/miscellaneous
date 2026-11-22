@@ -9,7 +9,7 @@ import { ControlledSelect } from '../components/CustomSelect'
 import reasonableExplanations from '../data/reasonableExplanations.json'
 import countriesData from '../data/countries.json'
 import { HIGH_RISK_COUNTRIES } from '../constants/constants'
-import { PHONE_CODE_TO_COUNTRY_CODE } from '../constants/phoneCodeCountries'
+import { PHONE_CODE_TO_COUNTRY_CODE } from '../data/phoneCodes'
 import { createCrsSchema, yupFormResolver } from './validationSchema'
 import { useStore } from '../providers/StateProvider'
 
